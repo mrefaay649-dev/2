@@ -89,6 +89,144 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 @media(max-width:380px){
   .cd-icons-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:12px 6px;padding:6px 10px 20px}
   .cd-icon-circle{width:46px;height:46px;font-size:21px}
+  <body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     وضع المعاينة المستقلة — بيانات تجريبية غنية
+     لا يمسح بياناتك — يعمل فقط إذا لم توجد
+     ═══════════════════════════════════════════════════════════ -->
+<script>
+(function seedDemo() {
+  if (localStorage.getItem('mashati_v1')) {
+    console.log('ℹ️ توجد بيانات موجودة — لن يتم إنشاء بيانات جديدة');
+    console.log('   للحذف: localStorage.removeItem("mashati_v1") ثم أعد التحميل');
+    return;
+  }
+  
+  var SECTIONS = ['أ', 'ب', 'ج', 'د', 'ه'];
+  var NAMES = [
+    'محمد القرني', 'عبدالله الغامدي', 'سعود الزهراني', 'خالد الشهري',
+    'فهد القحطاني', 'سلطان الدوسري', 'أحمد الحربي', 'عمر السبيعي',
+    'ماجد الشمري', 'تركي البقمي', 'ناصر المطيري', 'بندر العتيبي'
+  ];
+  
+  function uid() { return 'st_' + Math.random().toString(36).slice(2, 10); }
+  function now() { return new Date().toISOString(); }
+  function dstr(d) {
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function daysAgo(n) { return dstr(new Date(Date.now() - n * 86400000)); }
+  
+  var demo = {
+    sections: { g12_s1: SECTIONS.slice() },
+    classes: {}, attendance: {}, behavior: {},
+    studentGrades: {}, exams: {}, notes: {},
+    followupDone: {}, followupCleared: {},
+    yearWorkWeights: {
+      participation: 10, homework: 10, research: 10,
+      exams: 15, activity: 5, worksheets: 10, finalExam: 40
+    }
+  };
+  
+  SECTIONS.forEach(function(sec, si) {
+    var ck = 'g12_s1_' + sec;
+    var count = 8 + (si % 4);
+    demo.classes[ck] = [];
+    demo.attendance[ck] = {};
+    demo.behavior[ck] = {};
+    demo.notes[ck] = [];
+    demo.studentGrades[ck] = {
+      participation: {}, research: {}, worksheets: {}, activity: {},
+      examsTotal: {}, homework: { assignments: [] }
+    };
+    demo.exams[ck] = { quizzes: [], chapters: [] };
+    
+    var students = [];
+    for (var i = 0; i < count; i++) {
+      var nameIdx = (si * 3 + i) % NAMES.length;
+      var s = {
+        id: uid(),
+        name: NAMES[nameIdx] + (i >= NAMES.length ? ' ' + (Math.floor(i/NAMES.length)+1) : ''),
+        code: ['A','B','C','D','E'][si] + String(i+1).padStart(2, '0'),
+        studentId: String(1000 + si * 100 + i),
+        guardianPhone: '05' + String(50000000 + si*1000 + i).padStart(8, '0'),
+        status: 'active'
+      };
+      demo.classes[ck].push(s);
+      students.push(s);
+    }
+    
+    students.forEach(function(st, i) {
+      demo.studentGrades[ck].participation[st.id] = { value: 6 + (i % 5), max: 10, at: now() };
+      demo.studentGrades[ck].research[st.id] = { value: 5 + (i % 6), max: 10, at: now() };
+      demo.studentGrades[ck].worksheets[st.id] = { value: 6 + ((i+2) % 5), max: 10, at: now() };
+      demo.studentGrades[ck].activity[st.id] = { value: 2 + (i % 4), max: 5, at: now() };
+      demo.studentGrades[ck].examsTotal[st.id] = { value: 8 + (i % 8), max: 15, at: now() };
+    });
+    
+    ['واجب الفصل الأول', 'واجب الأحماض والقواعد'].forEach(function(title, hwIdx) {
+      var a = { id: 'hw_' + sec + '_' + hwIdx, title: title, maxGrade: 10, at: now(), grades: {} };
+      students.forEach(function(st, i) {
+        a.grades[st.id] = { value: 5 + ((i + hwIdx) % 6), at: now() };
+      });
+      demo.studentGrades[ck].homework.assignments.push(a);
+    });
+    
+    var q1 = { id: 'q_' + sec + '_1', title: 'اختبار قصير — المحاليل', maxGrade: 10, at: now(), grades: {} };
+    var q2 = { id: 'q_' + sec + '_2', title: 'اختبار قصير — pH', maxGrade: 10, at: now(), grades: {} };
+    var ch1 = { id: 'ch_' + sec + '_1', chapterIndex: 0, chapterName: 'المخاليط والمحاليل', maxGrade: 5, at: now(), grades: {} };
+    students.forEach(function(st, i) {
+      q1.grades[st.id] = { value: 5 + (i % 6), at: now() };
+      q2.grades[st.id] = { value: 4 + (i % 7), at: now() };
+      ch1.grades[st.id] = { value: 2 + (i % 4), at: now() };
+    });
+    demo.exams[ck].quizzes.push(q1, q2);
+    demo.exams[ck].chapters.push(ch1);
+    
+    [daysAgo(3), daysAgo(2), daysAgo(1), daysAgo(0)].forEach(function(date, sIdx) {
+      var sessionId = 's_' + date;
+      demo.attendance[ck][sessionId] = { _mode: 'onsite', _createdAt: now() };
+      students.forEach(function(st, i) {
+        var status = 'present';
+        if (i % 7 === 3 && sIdx >= 2) status = 'absent';
+        else if (i % 11 === 5 && sIdx >= 1) status = 'late';
+        demo.attendance[ck][sessionId][st.id] = { status: status, at: now() };
+      });
+    });
+    
+    [daysAgo(2), daysAgo(1), daysAgo(0)].forEach(function(date, bIdx) {
+      var sessionId = 's_' + date;
+      demo.behavior[ck][sessionId] = {};
+      students.forEach(function(st, i) {
+        if ((i + bIdx) % 3 === 0) {
+          demo.behavior[ck][sessionId][st.id] = [{
+            delta: (i % 2 === 0) ? 1 : -1,
+            reason: (i % 2 === 0) ? 'مشاركة ممتازة' : 'عدم التركيز',
+            note: '', at: now()
+          }];
+        }
+      });
+    });
+    
+    if (students.length > 0) {
+      demo.notes[ck].push({
+        studentId: students[0].id,
+        text: 'طالب متميز — يحتاج إلى مهام إثرائية',
+        at: now()
+      });
+    }
+  });
+  
+  localStorage.setItem('mashati_v1', JSON.stringify(demo));
+  console.log('✅ [معاينة] بيانات تجريبية جاهزة: 5 شعب × 8-11 طالب');
+  console.log('   للحذف: localStorage.removeItem("mashati_v1")');
+})();
+</script>
+
+<!-- ⬇️ باقي كود الصفحة يبدأ من هنا ⬇️ -->
+<nav class="cd-tabs" id="cdTabs">
+  <button class="cd-tab active" data-tab="general" onclick="cdSwitchTab('general')">عام</button>
+  ...
   .cd-icon-tile .lbl{font-size:9.5px;min-height:26px}
   .cd-icon-tile{padding:8px 2px;gap:6px}
   .cd-stat .val{font-size:22px}
